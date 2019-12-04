@@ -1,11 +1,11 @@
 # Site settings
-title: my Blog
+title: Lynn's Blog
 name: Lynn # your name
 email: 470549092@@qq.com # your email address
 description: >
     Lynn's Blog. 
-baseurl: "/Nice_Blog" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "https://leeleeleeleelynn.github.io" # the base hostname & protocol for your site
 twitter_username: # your Twitter username
 github_username: LeeLeeLeeLeeLynn # your Github username
 disqus_username: # your disqus username
