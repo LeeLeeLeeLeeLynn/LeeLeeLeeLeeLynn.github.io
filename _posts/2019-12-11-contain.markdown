@@ -1,0 +1,52 @@
+---
+layout: post
+title: "docker容器"
+subtitle: "基于nameSpace和Cgroup实现隔离和限制"
+date: 2019-12-11
+author: liying
+category: docker
+tags: docker
+finished: true
+---
+
+## Docker 容器
+
+*“一个正在运行的Docker容器，其实就是一个启用了多个**Linux Namespace**的应用进程，而这个进程能够使用的资源量，则受**Cgroups**配置的限制。”*
+
+#### NameSpace ：是Linux在创建新进程的一个可选参数。
+
+- NameSpace可以让进程只看到与自己相关的资源，对其他nameSpace下的进程及其资源无感
+- nameSpace的隔离能力：
+  - ![Codes](/img/nameSpace.png)
+
+- 相关函数：
+  - `clone()`  创建新进程的时候同时创建namespace 
+  - `setns()` 将当前进程加入已有的namespace
+  - `unshare()` 在原进程的基础上，创建并加入新的namespace
+
+参考：[https://www.cnblogs.com/sparkdev/p/9365405.html](nameSpace)
+
+#### Cgroup：限制一个进程组能够使用的资源上限
+
+cgroup通过文件的方式暴露给用户
+
+`/sys/fs/cgroup/[子系统]/[控制组名]/[具体资源种类]`
+
+- [子系统] cgroup下有多个子系统，如cpuset、cpu、memory等。是可以被cgroup进行限制的资源种类。
+
+  - `cat /etc/cgconfig.conf` 查看子系统挂载目录
+
+    例, `cpu = /sys/fs/cgroup/cpu;`
+
+- [控制组名]在子系统下创建一个目录，即控制组。操作系统则会在新创建的控制组下，自动生成多个具体资源文件。
+
+- [具体资源种类]通过echo方法将限制写入具体资源种类文件中，即可以达到对于该控制组下的某个具体资源种类进行限制的目的。
+
+#### 总结：
+
+因此容器仍然还是宿主机上的**普通进程**，共享一个宿主机的内核，运行在同一个宿主机的操作系统上，只是使用了**namespace**及**cgroup**进行了隔离和限制。
+
+优点：“敏捷”和“高性能”，与vm相比，不存在因虚拟化带来的性能损耗。
+
+缺点：隔离不彻底。例：top出来的cpu和内存仍然是宿主机的信息。
+
