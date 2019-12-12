@@ -28,11 +28,11 @@ finished: true
 
 cgroup通过文件的方式暴露给用户
 
-`/sys/fs/cgroup/[子系统]/[控制组名]/[具体资源种类]`
+`/sys/fs/cgroup/[子系统]/[控制组名]/[具体资源种类]` 
 
 - [子系统] cgroup下有多个子系统，如cpuset、cpu、memory等。是可以被cgroup进行限制的资源种类。
 
-  - `cat /etc/cgconfig.conf` 查看子系统挂载目录
+  - `cat /etc/cgconfig.conf` 查看子系统挂载目录【注：目录不存在的话，需要挂载cgroup（详情谷歌）】
 
     例, `cpu = /sys/fs/cgroup/cpu;`
 
@@ -43,6 +43,7 @@ cgroup通过文件的方式暴露给用户
 ## 总结：
 
 因此容器仍然还是宿主机上的**普通进程**，共享一个宿主机的内核，运行在同一个宿主机的操作系统上，只是使用了**namespace**及**cgroup**进行了隔离和限制。
+<u>这意味着，如果要在Windows宿主机上运行Linux容器，或者在低版本的Linux宿主机上运行高版本的Linux容器，都是行不通的。</u>
 
 优点：“敏捷”和“高性能”，与vm相比，不存在因虚拟化带来的性能损耗。
 
