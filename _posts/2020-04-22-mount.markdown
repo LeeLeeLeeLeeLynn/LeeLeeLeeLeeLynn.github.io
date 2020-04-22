@@ -1,0 +1,69 @@
+---
+layout: post
+title: "docker学习问题总结"
+subtitle: "基于Kubernetes第8讲"
+date: 2020-04-22
+author: liying
+category: docker
+tags: docker
+finished: false
+---
+
+## 一、容器既然是一个封闭的进程，那么外接程序是如何进入容器这个进程的呢
+
+通过docker exec命令进入容器内部，底层使用的是Namespace相关的setns()函数，将当前进程加入容器namespace，从而达到进入容器内部的效果。
+
+## 二、如何推送到Docker Hub
+
+#### docker commit
+
+```shell
+#打标签
+docker tag <container> <repository>/<name>:<version>
+#修改后提交到镜像保存
+docker commit <container> <repository>/<name>:<version>
+```
+
+把最上层的“可读写层”，加上原先容器镜像的只读层，打包组成了一个新的镜像。
+
+**Copy-on-Write**：任何对镜像rootfs进行的修改都会被操作系统先复制到可读写层，再进行修改。
+
+#### docker push
+
+```shell
+#登陆
+docker login （需要注册Docker Hub账号）
+#推送到镜像仓库
+docker push <repository>/<name>:<version>
+```
+
+## 三、docker commit对挂载点volume内容修改的影响是什么？
+
+commit不会提交挂载的内容，原因是commit发生在宿主机空间，由于mount namespace的作用，宿主机不知道绑定挂载的存在，所以在宿主机看来，只存在容器可读写层的的一个空文件夹（挂载点）。
+
+## 四、容器与宿主机如何进行文件读写？或volume是为了解决什么题？
+
+volume机制允许将宿主机上的目录或文件，挂载到容器里进行操作和读写。	
+
+在chroot之前，宿主机上的文件对容器可见，可以将一个文件或目录通过linux的bind mount机制挂载到容器里。
+
+## 五、Docker的copyData功能是什么？解决了什么问题？
+
+如果你执行 docker run -v /home:/test 的时候，容器镜像里的 /test 目录下本来就有内容的话，你会发现，在宿主机的 /home 目录下，也会出现这些内容。
+
+- [ ] 找到相关内容
+
+## 六、bind mount机制是什么？
+
+允许将宿主机上的一个目录或文件挂载到一个指定的目录上。
+
+实际上是inode的替换过程。
+
+![bind mount示例，来源《深入剖析Kubernetes》第8讲](https://static001.geekbang.org/resource/image/95/c6/95c957b3c2813bb70eb784b8d1daedc6.png)
+
+## 七、cgroup Namespace的作用是什么？
+
+1. 可以限制容器的cgroup filesytem视图，使得在容器中也可以安全的使用cgroup；
+2. 此外，会使容器迁移更加容易；在迁移时，/proc/self/cgroup需要复制到目标机器，这要求容器的cgroup路径是唯一的，否则可能会与目标机器冲突。有了cgroupns，每个容器都有自己的cgroup filesystem视图，不用担心这种冲突。
+
+- [ ] 看明白这一段【复制过来的没仔细看】

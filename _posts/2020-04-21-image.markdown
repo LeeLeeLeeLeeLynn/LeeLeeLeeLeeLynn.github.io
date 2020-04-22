@@ -71,7 +71,7 @@ finished: true
     运行容器时，控制台输出`hello`，即执行的是echo hello。
 
     但当ENTRYPOINT写法为ENTRYPOINT < command >时，则默认为完整命令不会传入CMD参数。
-    
+  
 - 若不写ENTRYPOINT，则会默认ENTRYPOINT 为`/bin/sh -c`。例如，
   
     ```bash
@@ -84,5 +84,6 @@ finished: true
     /bin/sh -c "python app.py"
     ````
   
+
 [《【docker】CMD ENTRYPOINT 区别 终极解读！》](https://blog.csdn.net/u010900754/article/details/78526443 ) 讲的非常清楚！
 
