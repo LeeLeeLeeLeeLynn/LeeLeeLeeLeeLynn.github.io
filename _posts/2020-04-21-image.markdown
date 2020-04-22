@@ -13,7 +13,7 @@ finished: true
 
 ## docker镜像如何制作的两种方式是什么？
 
-- rootfs（根文件系统）
+- #### rootfs（根文件系统）
 
   - 只是一个操作系统所包含的文件、配置和目录，并不包括操作系统内核。
   - 通过mount namespace挂载在宿主机上，change root改变根目录（从而对宿主机其他文件无感知）
@@ -24,64 +24,65 @@ finished: true
     - 可读写层：对只读层的增量操作（增删改），删则通过wh把只读层内容遮挡起来。
   - 三大层通过UFS联合后，形成完整的一套增量rootfs。UFS会将所有层的文件都合并挂载到一个文件目录下，上层的修改会影响到下层的文件，所以在只读层不变的情况下，修改了读写层，那么合并后的rootfs会有所变化。
 
-- Dockerfile
+- #### Dockerfile
   
   - 使用标准**原语**（大写）书写，按顺序处理。常用原语整理见下表：
   
-  | 原语       | 语法                                                         | 描述                                                         | 示例                                                         |
-  | ---------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-  | FROM       | FROM < image > <br/>FROM < image >:< tag ><br/>FROM < image >:< digest > | 指定基础镜像<br/>必须位于第一行<br/>不以任何镜像为基础写为FROM scratch<br/><digest>、<tag>为可选参数 | FROM python:2.7-slim                                         |
-  | RUN        | RUN < command > <br/>                                        | 运行指定命令<br/><command>为shell命令                        | \# 使用pip命令安装这个应用所需要的依赖<br/>RUN pip install --trusted-host pypi.python.org -r requirements.txt |
-  | CMD        | CMD < command ><br/>CMD ["executable","param1","param2"] <br/>CMD ["param1","param2"] | 启动时要运行的默认命令                                       | \# 设置容器进程为：python app.py，即：这个Python应用的启动命令<br/>CMD ["python", "app.py"] |
-  | LABEL      | LABEL < key >=< value > < key >=< value > < key >=< value > ... | 为镜像指定标签                                               | LABEL version="1.0"                                          |
-  | MAINTAINER | MAINTAINER < name >                                          | 指定作者                                                     | MAINTAINER ly                                                |
-  | EXPOSE     | EXPOSE < port >                                              | 暴漏容器运行时的监听端口给外部                               | # 允许外界访问容器的80端口<br/>EXPOSE 80                     |
-  | ENV        | #设置一个<br/>ENV < key > < value ><br/>#设置多个<br/>ENV < key >=< value > ... | 设置环境变量                                                 | \# 设置环境变量ENV NAME World                                |
-  | ADD        | ADD < src >... < dest > <br/>ADD ["< src >",... "< dest >"]  | 复制文件到镜像<br/>< dest >可以是容器内的绝对路径，也可以是相对于工作目录的相对路径<br/>< src >可以是一个本地文件或者是一个本地压缩文件，还可以是一个url | \# 将当前目录下的所有内容复制到/app下<br/>ADD . /app<br/>#获取url内容<br/>ADD http://example.com/foobar / |
-  | COPY       | COPY < src >... < dest > <br/>COPY ["< src >",... "< dest >"] | 复制文件到镜像                                               | COPY test relativeDir/                                       |
-  | ENTRYPOINT | ENTRYPOINT < command ><br/>ENTRYPOINT ["executable", "param1", "param2"] | 启动时的运行命令                                             | ENTRYPOINT ["top", "-b"]                                     |
-  | VOLUME     | VOLUME ["/data"]                                             | 挂载文件到容器中。容器使用**AUFS，**不能持久化数据，当数据需要持久化时用这个命令。 |                                                              |
-  | WORKDIR    | WORKDIR /path/to/workdir                                     | 设置工作目录<br/>对RUN、CMD、ENTRYPOINT、COPY、ADD 生效      | \# 将工作目录切换为/app<br/>WORKDIR /app                     |
-  
+| 原语       | 语法                                                         | 描述                                                         | 示例                                                         |
+| ---------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| FROM       | FROM < image > <br/>FROM < image >:< tag ><br/>FROM < image >:< digest > | 指定基础镜像<br/>必须位于第一行<br/>不以任何镜像为基础写为FROM scratch<br/><digest>、<tag>为可选参数 | FROM python:2.7-slim                                         |
+| RUN        | RUN < command > <br/>                                        | 运行指定命令<br/>< command >为shell命令                      | \# 使用pip命令安装这个应用所需要的依赖<br/>RUN pip install --trusted-host pypi.python.org -r requirements.txt |
+| CMD        | CMD < command ><br/>CMD ["executable","param1","param2"] <br/>CMD ["param1","param2"] | 启动时要运行的默认命令                                       | \# 设置容器进程为：python app.py，即：这个Python应用的启动命令<br/>CMD ["python", "app.py"] |
+| LABEL      | LABEL < key >=< value > < key >=< value > < key >=< value > ...<br/> | 为镜像指定标签<br/>                                          | LABEL version="1.0"<br/>                                     |
+| MAINTAINER | MAINTAINER < name >                                          | 指定作者                                                     | MAINTAINER ly                                                |
+| EXPOSE     | EXPOSE < port >                                              | 暴漏容器运行时的监听端口给外部                               | # 允许外界访问容器的80端口<br/>EXPOSE 80                     |
+| ENV        | #设置一个<br/>ENV < key > < value ><br/>#设置多个<br/>ENV < key >=< value > ... | 设置环境变量                                                 | \# 设置环境变量ENV NAME World                                |
+| ADD        | ADD < src >... < dest > <br/>ADD ["< src >",... "< dest >"]  | 复制文件到镜像<br/>< dest >可以是容器内的绝对路径，也可以是相对于工作目录的相对路径<br/>< src >可以是一个本地文件或者是一个本地压缩文件，还可以是一个url | \# 将当前目录下的所有内容复制到/app下<br/>ADD . /app<br/>#获取url内容<br/>ADD http://example.com/foobar / |
+| COPY       | COPY < src >... < dest > <br/>COPY ["< src >",... "< dest >"] | 复制文件到镜像                                               | COPY test relativeDir/                                       |
+| ENTRYPOINT | ENTRYPOINT < command ><br/>ENTRYPOINT ["executable", "param1", "param2"] | 启动时的运行命令                                             | ENTRYPOINT ["top", "-b"]                                     |
+| VOLUME     | VOLUME ["/data"]                                             | 挂载文件到容器中。容器使用**AUFS，**不能持久化数据，当数据需要持久化时用这个命令。 |                                                              |
+| WORKDIR    | WORKDIR /path/to/workdir                                     | 设置工作目录<br/>对RUN、CMD、ENTRYPOINT、COPY、ADD 生效      | \# 将工作目录切换为/app<br/>WORKDIR /app                     |
+
   博客参考：[《Dockerfile命令详解（超全版本）》](https://www.cnblogs.com/lingfengblogs/p/11093246.html)
-  
+
   官网：https://docs.docker.com/engine/reference/builder/#cmd
+
+**【注】**：
+
+- 多行命令不要写多个RUN，因为Dockerfile中每一个指令都会建立一层，会造成镜像臃肿，书写换行符是\ 。
+
+- LABEL和ENV的区别是，LABEL作用域为当前dockerfile，而ENV作用域为容器全局。
+
+- ADD和COPY区别是，COPY的源文件只能是本地文件，而ADD可以是本地文件、压缩文件和url。
+
+- RUN和CMD的区别是，RUN是在构建容器时执行的操作，而CMD时容器启动时的命令。
+
+- CMD和ENTRYPOINT：
+
+  - 完整应该是ENRTYPOINT CMD，两者都是可以完整命令，那么ENTRYPOINT优先级>CMD
+
+  - 当CMD不是完整命令时，作为参数传入ENTRYPOINT。
+
+  - ```shell
+    CMD ["hello"]
+    ENTRYPOINT ["echo"]
+    ```
+
+    运行容器时，控制台输出`hello`，即执行的是echo hello。
+
+    但当ENTRYPOINT写法为ENTRYPOINT < command >时，则默认为完整命令不会传入CMD参数。
+    
+- 若不写ENTRYPOINT，则会默认ENTRYPOINT 为`/bin/sh -c`。例如，
   
-- **【注】**：
-  
-  - 多行命令不要写多个RUN，因为Dockerfile中每一个指令都会建立一层，会造成镜像臃肿，书写换行符是\ 。
-  
-  - LABEL和ENV的区别是，LABEL作用域为当前dockerfile，而ENV作用域为容器全局。
-  
-  - ADD和COPY区别是，COPY的源文件只能是本地文件，而ADD可以是本地文件、压缩文件和url。
-  
-  - RUN和CMD的区别是，RUN是在构建容器时执行的操作，而CMD时容器启动时的命令。
-  
-  - CMD和ENTRYPOINT：
-  
-    - 完整应该是ENRTYPOINT CMD，两者都是可以完整命令，那么ENTRYPOINT优先级>CMD
-  
-    - 当CMD不是完整命令时，作为参数传入ENTRYPOINT。
-  
-    - ```shell
-      CMD ["hello"]
-      ENTRYPOINT ["echo"]
-      ```
-  
-      运行容器时，控制台输出`hello`，即执行的是echo hello。
-  
-      但当ENTRYPOINT写法为ENTRYPOINT < command >时，则默认为完整命令不会传入CMD参数。
-    - 若不写ENTRYPOINT，则会默认ENTRYPOINT 为`/bin/sh -c`。例如，
-  
-      ```bash
+    ```bash
     CMD ["python", "app.py"]
-      ```
-    
-      实际执行为
+    ```
   
-      ````shell
+  实际执行为
+  
+    ````shell
     /bin/sh -c "python app.py"
-      ````
-    
-    - [《【docker】CMD ENTRYPOINT 区别 终极解读！》](https://blog.csdn.net/u010900754/article/details/78526443 ) 讲的非常清楚！
+    ````
+  
+[《【docker】CMD ENTRYPOINT 区别 终极解读！》](https://blog.csdn.net/u010900754/article/details/78526443 ) 讲的非常清楚！
 
