@@ -33,6 +33,8 @@ finished: true
   
       nstype取值见：http://man7.org/linux/man-pages/man2/setns.2.html
   
+    【nameSpace是对各种资源分别进行隔离，而不是一键隔离所以每种资源对应一个id，指向相同NameSpace id的资源共享，对其余则不可见】
+  
   - `unshare()` 在原进程的基础上，创建并加入新的namespace
 
 参考：[https://www.cnblogs.com/sparkdev/p/9365405.html](nameSpace)
