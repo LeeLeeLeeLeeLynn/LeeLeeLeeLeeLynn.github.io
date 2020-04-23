@@ -83,3 +83,6 @@ linux提供`chroot`命令来改变进程根目录，而docker会有优先使用`
 1. 使用namespace进行资源隔离。
 2. 通过cgroup对资源进行限制。
 3. 切换根目录，根目录中是一个操作系统所包含的文件、配置和目录。（**不包含内核**）
+
+![docker结构视图](/img/docker-core.png)
+
