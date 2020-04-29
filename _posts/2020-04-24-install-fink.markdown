@@ -1,3 +1,4 @@
+---
 layout: post
 title: "安装fink在mac上使用apt-get"
 subtitle: "fink安装"
@@ -6,7 +7,7 @@ author: liying
 category: Mac
 tags: fink,mac
 finished: true
-
+---
 ## 在mac上使用apt-get
 
 在linux上使用apt-get进行包管理很方便，但是在mac上不能直接使用apt-get。两种解决方案：

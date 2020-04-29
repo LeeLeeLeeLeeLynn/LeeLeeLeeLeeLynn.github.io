@@ -1,3 +1,4 @@
+---
 layout: post
 title: "minikube安装"
 subtitle: "minikube国内版"
@@ -5,8 +6,8 @@ date: 2020-04-26
 author: liying
 category: Kubernetes
 tags: kubernetes
-finished: true
-
+finished: true 
+---
 ## 安装
 
 安装教程：[阿里云维护的国内版minikube](https://yq.aliyun.com/articles/221687)
