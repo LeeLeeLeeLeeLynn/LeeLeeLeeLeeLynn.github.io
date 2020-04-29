@@ -21,7 +21,7 @@ finished: true
 
 [官网下载地址](http://www.finkproject.org/download/srcdist.php)
 
-![image-20200426202126487](/img/fink-download.png)
+![fink-download](/img/fink_download.png)
 
 **方法一**: （macOS 10.9~10.15适用）
 
