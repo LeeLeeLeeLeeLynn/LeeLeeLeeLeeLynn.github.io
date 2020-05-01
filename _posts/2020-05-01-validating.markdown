@@ -1,10 +1,10 @@
 ---
 layout: post
-title: "error: error validating "nginx.yaml": error validating data: the server could not find the requested resource; if you choose to ignore these errors, turn validation off with --validate=false"
-subtitle: "kubectl create 报错：“error validating data”"
+title: "kubectl create 报错：“error validating data”"
+subtitle: "error: error validating "nginx.yaml": error validating data: the server could not find the requested resource; if you choose to ignore these errors, turn validation off with --validate=false"
 date: 2020-05-01
 author: liying
-category: Kubernetes
+category: kubernetes
 tags: kubernetes
 finished: true 
 ---

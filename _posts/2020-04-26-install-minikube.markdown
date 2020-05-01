@@ -4,7 +4,7 @@ title: "minikube安装"
 subtitle: "minikube国内版"
 date: 2020-04-26
 author: liying
-category: Kubernetes
+category: kubernetes
 tags: kubernetes
 finished: true 
 ---

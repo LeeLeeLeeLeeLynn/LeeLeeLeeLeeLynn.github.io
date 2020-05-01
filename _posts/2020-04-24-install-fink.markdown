@@ -4,7 +4,7 @@ title: "安装fink在mac上使用apt-get"
 subtitle: "fink安装"
 date: 2020-04-24
 author: liying
-category: Mac
+category: mac
 tags: fink,mac
 finished: true
 ---
