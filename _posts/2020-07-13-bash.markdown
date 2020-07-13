@@ -1,0 +1,29 @@
+---
+layout: post
+title: "切换shell"
+subtitle: "MacOS切换shell"
+date: 2020-07-13
+author: liying
+category: environment
+tags: environment,MacOS
+finished: true 
+---
+## bash & zsh
+
+通常MacOS默认的终端是bash，也是MacOS早期使用的终端，MacOS10.15后，官方推荐使用zsh（Z shell）。
+
+切换终端方法
+
+```shell
+#查看可用shell
+cat /etc/shells
+#切换成zsh
+chsh -s /bin/zsh
+#切换成bash
+chsh -s /bin/bash
+
+```
+
+zsh基本兼容bash，并且功能更强大。
+
+具体区别：https://www.xshell.net/shell/bash_zsh.html【太长了还没看】
