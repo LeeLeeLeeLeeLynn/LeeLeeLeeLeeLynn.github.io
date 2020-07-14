@@ -1,0 +1,33 @@
+---
+layout: post
+title: "Mac解压rar工具"
+subtitle: "MacOs归档工具可以解压zip，不支持rar格式解压，AppStore大部分应用需要付费，而‘UnRAR’是命令行解压工具，可通过brew直接安装"
+date: 2020-07-14
+author: liying
+category: environment
+tags: environment,MacOS,UnRAR
+finished: true 
+---
+## UnRAR 
+
+*UnRAR* is the name of two different command-line applications for extracting RAR file archives.
+
+简单的命令行RAR解压工具——UnRAR。
+
+
+
+## UnRAR下载 
+
+使用homebrew下载
+
+`brew install unrar`
+
+
+
+## UnRAR使用 
+
+cd 到 rar文件所在目录下，使用
+
+`unrar x 文件名.rar` 解压。
+
+解压后，文件在同一目录下。
