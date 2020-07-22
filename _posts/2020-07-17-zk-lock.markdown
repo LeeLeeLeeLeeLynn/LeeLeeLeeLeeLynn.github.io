@@ -1,0 +1,530 @@
+---
+
+layout: post
+title: "zookeeper分布式锁"
+subtitle: "分布式的锁全局同步，意味着任何一个时间点不会有两个客户端都拥有相同的锁。"
+date: 2020-07-17
+author: liying
+category: zookeeper
+tags: zookeeper,lock,java
+finished: false 
+---
+## 可重入锁 vs 不可重入锁
+
+### 可重入锁 
+
+如果一个线程在外层方法获取到锁之后，如果在内层方法再次请求获取锁，会直接获得该锁。
+
+### 不可重入锁
+
+如果一个线程在外层方法获取到锁之后，如果在内层方法再次请求获取锁，会因为获取不到资源而堵塞。
+
+
+
+## InterProcessLock
+
+**InterProcessMutex**和**InterProcessSemaphoreMutex**是zk持有的分布式排他锁，二者都实现了**InterProcessLock**接口。
+
+中定义了四个接口
+
+```java
+/**
+ * 获取锁，保持阻塞状态直到获取到锁
+ **/
+void acquire() throws Exception;
+/**
+ * 获取锁，保持阻塞状态直到获取到锁或者到达指定时间
+ * time - time to wait
+ * unit - time unit
+ **/
+boolean acquire(long time, TimeUnit unit) throws Exception;
+/**
+ * 释放锁
+ **/
+void release() throws Exception;
+/**
+ * 此JVM中的线程是否已经获取了锁
+ **/
+boolean isAcquiredInThisProcess();
+```
+
+## InterProcessMutex（可重入排他锁）
+
+**InterProcessMutex**是可重入锁。除了**InterProcessLock**以外，它还实现了**Revocable<InterProcessMutex>**接口，使得锁可以被外部进程或者线程释放。
+
+```java
+public class InterProcessMutex implements InterProcessLock, Revocable<InterProcessMutex> {
+  	//释放和申请锁操作的真正执行者
+    private final LockInternals internals;
+  	//需要加锁的路径
+    private final String basePath;
+  	//线程和对应的锁信息LockData，组织成Map一一对应
+    private final ConcurrentMap<Thread, InterProcessMutex.LockData> threadData;
+    private static final String LOCK_NAME = "lock-";
+
+    public InterProcessMutex(CuratorFramework client, String path) {
+        this(client, path, new StandardLockInternalsDriver());
+    }
+
+    public InterProcessMutex(CuratorFramework client, String path, LockInternalsDriver driver) {
+        this(client, path, "lock-", 1, driver);
+    }
+		/**
+ 			* 获取锁，保持阻塞状态直到获取到锁
+ 		 **/
+    public void acquire() throws Exception {
+        if (!this.internalLock(-1L, (TimeUnit)null)) {
+            throw new IOException("Lost connection while trying to acquire lock: " + this.basePath);
+        }
+    }
+		/**
+		 * 获取锁，保持阻塞状态直到获取到锁或者到达指定时间
+		 * 都调用internalLock(time，unit)方法
+		 **/
+    public boolean acquire(long time, TimeUnit unit) throws Exception {
+        return this.internalLock(time, unit);
+    }
+
+  	/**
+		 * 是否被该进程中的一个线程所持有
+		 * 如果threadData的map中有值，说明至少一个线程持有该锁
+		 **/
+    public boolean isAcquiredInThisProcess() {
+        return this.threadData.size() > 0;
+    }
+
+    public void release() throws Exception {
+        Thread currentThread = Thread.currentThread();
+      	//是否能从map中获取到当前线程持有的锁
+        InterProcessMutex.LockData lockData = (InterProcessMutex.LockData)this.threadData.get(currentThread);
+        if (lockData == null) {
+           //未获得锁
+            throw new IllegalMonitorStateException("You do not own the lock: " + this.basePath);
+        } else {
+          	//释放锁，使用原子操作，避免并发操作引起的死锁
+            int newLockCount = lockData.lockCount.decrementAndGet();
+            //重入次数=0，说明已经当前线程已经不持有该锁了，<0则表示出现异常
+            if (newLockCount <= 0) {
+                if (newLockCount < 0) {
+                  	//重入次数<0 出现异常
+                    throw new IllegalMonitorStateException("Lock count has gone negative for lock: " + this.basePath);
+                } else {
+                    try {
+                       //释放锁
+                        this.internals.releaseLock(lockData.lockPath);
+                    } finally {
+                       //当前线程不持有该锁，从map中移除
+                        this.threadData.remove(currentThread);
+                    }
+
+                }
+            }
+        }
+    }
+		/**
+		 * 返回当前参与锁的节点列表
+		 **/
+    public Collection<String> getParticipantNodes() throws Exception {
+        return LockInternals.getParticipantNodes(this.internals.getClient(), this.basePath, this.internals.getLockName(), this.internals.getDriver());
+    }
+
+ 		/**
+ 		 * 实现Revocable<InterProcessMutex>的接口，当另一个进程/线程需要当前线程释放锁时，将调用侦听器
+ 		 **/
+    public void makeRevocable(RevocationListener<InterProcessMutex> listener) {
+        this.makeRevocable(listener, MoreExecutors.directExecutor());
+    }
+    /**
+     * executor ：侦听器的执行者
+     * 在InternalLock中，
+     *    if (Arrays.equals(bytes, REVOKE_MESSAGE)) {
+     *        entry.getExecutor().execute(entry.getRunnable());
+     *    }
+     * 如果watcher监测到事件变更是REVOKE_MESSAGE，则使用RevocationSpec中的executor去执行释放操作
+     * 需要在获取锁之前设置，InternalLock的internalLockLoop()，会先判断是否设置了revoke并且设置对应watcher
+     **/
+    public void makeRevocable(final RevocationListener<InterProcessMutex> listener, Executor executor) {
+        this.internals.makeRevocable(new RevocationSpec(executor, new Runnable() {
+            public void run() {
+                listener.revocationRequested(InterProcessMutex.this);
+            }
+        }));
+    }
+		/**
+		 * 底层构造函数
+		 */
+    InterProcessMutex(CuratorFramework client, String path, String lockName, int maxLeases, LockInternalsDriver driver) {
+        this.threadData = Maps.newConcurrentMap();
+        this.basePath = PathUtils.validatePath(path);
+        this.internals = new LockInternals(client, driver, path, lockName, maxLeases);
+    }
+    
+   /**
+    * 当前线程是否拥有该锁
+    **/
+    public boolean isOwnedByCurrentThread() {
+        InterProcessMutex.LockData lockData = (InterProcessMutex.LockData)this.threadData.get(Thread.currentThread());
+        return lockData != null && lockData.lockCount.get() > 0;
+    }
+
+    protected byte[] getLockNodeBytes() {
+        return null;
+    }
+		/**
+		 *获取当前线程的锁的路径
+		 **/
+    protected String getLockPath() {
+        InterProcessMutex.LockData lockData = (InterProcessMutex.LockData)this.threadData.get(Thread.currentThread());
+        return lockData != null ? lockData.lockPath : null;
+    }
+
+    private boolean internalLock(long time, TimeUnit unit) throws Exception {
+        Thread currentThread = Thread.currentThread();
+        InterProcessMutex.LockData lockData = (InterProcessMutex.LockData)this.threadData.get(currentThread);
+        if (lockData != null) {
+          	//如果已经获得锁，则锁重入次数+1，并返回true
+            lockData.lockCount.incrementAndGet();
+            return true;
+        } else {
+            //尝试获取锁，internals自旋
+            String lockPath = this.internals.attemptLock(time, unit, this.getLockNodeBytes());
+            if (lockPath != null) {
+              	//获取到则新建LockData并放入map
+                InterProcessMutex.LockData newLockData = new InterProcessMutex.LockData(currentThread, lockPath);
+                this.threadData.put(currentThread, newLockData);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+		//锁信息对象结构【内部类】
+    private static class LockData {
+      	//持有锁的线程
+        final Thread owningThread;
+      	//锁路径
+        final String lockPath;
+      	//重入次数
+        final AtomicInteger lockCount;
+
+        private LockData(Thread owningThread, String lockPath) {
+          	//初始化是值为1，重入后再次获得会+1
+            this.lockCount = new AtomicInteger(1);
+            this.owningThread = owningThread;
+            this.lockPath = lockPath;
+        }
+    }
+}
+
+```
+
+### LockInternals
+
+```java
+public class LockInternals {
+    private final WatcherRemoveCuratorFramework client;
+    private final String path;
+    private final String basePath;
+    private final LockInternalsDriver driver;
+    private final String lockName;
+    private final AtomicReference<RevocationSpec> revocable = new AtomicReference((Object)null);
+    private final CuratorWatcher revocableWatcher = new CuratorWatcher() {
+        public void process(WatchedEvent event) throws Exception {
+            if (event.getType() == EventType.NodeDataChanged) {
+                LockInternals.this.checkRevocableWatcher(event.getPath());
+            }
+
+        }
+    };
+    private final Watcher watcher = new Watcher() {
+        public void process(WatchedEvent event) {
+            LockInternals.this.notifyFromWatcher();
+        }
+    };
+    private volatile int maxLeases;
+    static final byte[] REVOKE_MESSAGE = "__REVOKE__".getBytes();
+
+    public void clean() throws Exception {
+        try {
+            this.client.delete().forPath(this.basePath);
+        } catch (BadVersionException var2) {
+        } catch (NotEmptyException var3) {
+        }
+
+    }
+
+  	/**
+  	 * InterProcessMutex传递的lockName是“lock-”，path是需要锁的zk路径
+  	 **/
+    LockInternals(CuratorFramework client, LockInternalsDriver driver, String path, String lockName, int maxLeases) {
+        this.driver = driver;
+        this.lockName = lockName;
+        this.maxLeases = maxLeases;
+        this.client = client.newWatcherRemoveCuratorFramework();
+        this.basePath = PathUtils.validatePath(path);
+        //将this.path组合成path+"/"+lockName 的形式
+        this.path = ZKPaths.makePath(path, lockName);
+    }
+
+    synchronized void setMaxLeases(int maxLeases) {
+        this.maxLeases = maxLeases;
+        this.notifyAll();
+    }
+
+    void makeRevocable(RevocationSpec entry) {
+        this.revocable.set(entry);
+    }
+
+    final void releaseLock(String lockPath) throws Exception {
+        this.client.removeWatchers();
+        this.revocable.set((Object)null);
+        this.deleteOurPath(lockPath);
+    }
+
+    CuratorFramework getClient() {
+        return this.client;
+    }
+
+    public static Collection<String> getParticipantNodes(CuratorFramework client, final String basePath, String lockName, LockInternalsSorter sorter) throws Exception {
+        List<String> names = getSortedChildren(client, basePath, lockName, sorter);
+        Iterable<String> transformed = Iterables.transform(names, new Function<String, String>() {
+            public String apply(String name) {
+                return ZKPaths.makePath(basePath, name);
+            }
+        });
+        return ImmutableList.copyOf(transformed);
+    }
+		/**
+		 *获取当前路径basePath下所有的子节点
+		 **/
+    public static List<String> getSortedChildren(CuratorFramework client, String basePath, final String lockName, final LockInternalsSorter sorter) throws Exception {
+        try {
+          	//获取basePath下下所有子节点，即路径前缀都为basePath的节点路径
+            List<String> children = (List)client.getChildren().forPath(basePath);
+            List<String> sortedList = Lists.newArrayList(children);
+            Collections.sort(sortedList, new Comparator<String>() {
+                public int compare(String lhs, String rhs) {
+                  	//截取“lock-序号”部分进行比较，若不存在lockName则直接用字符串进行比较，比较方法：字典序
+                    return sorter.fixForSorting(lhs, lockName).compareTo(sorter.fixForSorting(rhs, lockName));
+                }
+            });
+            return sortedList;
+        } catch (NoNodeException var6) {
+            return Collections.emptyList();
+        }
+    }
+		 /**
+		  * 将获取到的子节点进行排序
+		  **/
+    public static List<String> getSortedChildren(final String lockName, final LockInternalsSorter sorter, List<String> children) {
+        List<String> sortedList = Lists.newArrayList(children);
+        Collections.sort(sortedList, new Comparator<String>() {
+            public int compare(String lhs, String rhs) {
+                return sorter.fixForSorting(lhs, lockName).compareTo(sorter.fixForSorting(rhs, lockName));
+            }
+        });
+        return sortedList;
+    }
+
+    List<String> getSortedChildren() throws Exception {
+        return getSortedChildren(this.client, this.basePath, this.lockName, this.driver);
+    }
+
+    String getLockName() {
+        return this.lockName;
+    }
+
+    LockInternalsDriver getDriver() {
+        return this.driver;
+    }
+
+  	/**
+		 * 自旋获得锁，直到到达超时时间
+		 **/
+    String attemptLock(long time, TimeUnit unit, byte[] lockNodeBytes) throws Exception {
+        long startMillis = System.currentTimeMillis();
+        Long millisToWait = unit != null ? unit.toMillis(time) : null;
+        byte[] localLockNodeBytes = this.revocable.get() != null ? new byte[0] : lockNodeBytes;
+        int retryCount = 0;
+        String ourPath = null;
+        boolean hasTheLock = false;
+        boolean isDone = false;
+
+        while(!isDone) {
+            isDone = true;
+
+            try {
+              	//在当前路径下，追加临时顺序节点路径
+                ourPath = this.driver.createsTheLock(this.client, this.path, localLockNodeBytes);
+              	// 循环等待获得锁
+                hasTheLock = this.internalLockLoop(startMillis, millisToWait, ourPath);
+            } catch (NoNodeException var14) {
+              	//因为session失败而找不到该节点，如果允许重试，则增加重试次数，否则抛出异常
+                if (!this.client.getZookeeperClient().getRetryPolicy().allowRetry(retryCount++, System.currentTimeMillis() - startMillis, RetryLoop.getDefaultRetrySleeper())) {
+                    throw var14;
+                }
+
+                isDone = false;
+            }
+        }
+
+        return hasTheLock ? ourPath : null;
+    }
+
+    private void checkRevocableWatcher(String path) throws Exception {
+        RevocationSpec entry = (RevocationSpec)this.revocable.get();
+        if (entry != null) {
+            try {
+                byte[] bytes = (byte[])((BackgroundPathable)this.client.getData().usingWatcher(this.revocableWatcher)).forPath(path);
+                if (Arrays.equals(bytes, REVOKE_MESSAGE)) {
+                    entry.getExecutor().execute(entry.getRunnable());
+                }
+            } catch (NoNodeException var4) {
+            }
+        }
+
+    }
+
+    private boolean internalLockLoop(long startMillis, Long millisToWait, String ourPath) throws Exception {
+        boolean haveTheLock = false;
+        boolean doDelete = false;
+
+        try {
+          	//如果允许外部撤销锁，则创建watcher对撤销操作进行监听
+            if (this.revocable.get() != null) {
+                ((BackgroundPathable)this.client.getData().usingWatcher(this.revocableWatcher)).forPath(ourPath);
+            }
+
+            while(this.client.getState() == CuratorFrameworkState.STARTED && !haveTheLock) {
+                List<String> children = this.getSortedChildren();
+              	//截取有序节点的序号内容
+                String sequenceNodeName = ourPath.substring(this.basePath.length() + 1);
+              /**调用StandardLockInternalsDriver中的方法判断，
+               * 注册一个临时有序节点，越早创建的节点编号越小，最小编号的节点获得锁，
+               * 通过监听比自己小的节点，当比自己小的节点删除后，客户端会收到watcher，
+               * 再次判断自己的节点是不是所有节点最小的，是则获得锁；
+               **/ 
+                PredicateResults predicateResults = this.driver.getsTheLock(this.client, children, sequenceNodeName, this.maxLeases);
+                if (predicateResults.getsTheLock()) {
+                    haveTheLock = true;
+                } else {
+                  	//获得需要watch的路径
+                    String previousSequencePath = this.basePath + "/" + predicateResults.getPathToWatch();
+                    synchronized(this) {
+                        try {
+                            ((BackgroundPathable)this.client.getData().usingWatcher(this.watcher)).forPath(previousSequencePath);
+                           //没有设定超时时间，则阻塞
+                            if (millisToWait == null) {
+                                this.wait();
+                            } else {
+                                millisToWait = millisToWait - (System.currentTimeMillis() - startMillis);
+                                startMillis = System.currentTimeMillis();
+                               //未到超时时间则在剩余时间内阻塞
+                                if (millisToWait > 0L) {
+                                    this.wait(millisToWait);
+                                } else {
+                                   //	超时删除节点
+                                    doDelete = true;
+                                    break;
+                                }
+                            }
+                        } catch (NoNodeException var19) {
+                        }
+                    }
+                }
+            }
+        } catch (Exception var21) {
+            ThreadUtils.checkInterrupted(var21);
+            doDelete = true;
+            throw var21;
+        } finally {
+            if (doDelete) {
+                this.deleteOurPath(ourPath);
+            }
+
+        }
+
+        return haveTheLock;
+    }
+
+    private void deleteOurPath(String ourPath) throws Exception {
+        try {
+            ((ChildrenDeletable)this.client.delete().guaranteed()).forPath(ourPath);
+        } catch (NoNodeException var3) {
+        }
+
+    }
+
+    private synchronized void notifyFromWatcher() {
+        this.notifyAll();
+    }
+}
+
+```
+
+### StandardLockInternalsDriver
+
+```java
+public class StandardLockInternalsDriver implements LockInternalsDriver {
+    private static final Logger log = LoggerFactory.getLogger(StandardLockInternalsDriver.class);
+
+    public StandardLockInternalsDriver() {
+    }
+		//maxLeases：允许几个线程持有锁，排他锁默认maxLeases=1
+    public PredicateResults getsTheLock(CuratorFramework client, List<String> children, String sequenceNodeName, int maxLeases) throws Exception {
+      	//获取在排序好的锁临时节点中的位置，
+        int ourIndex = children.indexOf(sequenceNodeName);
+        validateOurIndex(sequenceNodeName, ourIndex);
+      	//当maxLeases=1时，如果是第0位则获得锁，即只有首位才能获得锁
+        boolean getsTheLock = ourIndex < maxLeases;
+      	//对排他锁来说，监听前一个节点，对其他锁来说监听下一个可能释放锁使得当前线程可以获得锁的节点路径
+        String pathToWatch = getsTheLock ? null : (String)children.get(ourIndex - maxLeases);
+        return new PredicateResults(pathToWatch, getsTheLock);
+    }
+
+    public String createsTheLock(CuratorFramework client, String path, byte[] lockNodeBytes) throws Exception {
+        String ourPath;
+        if (lockNodeBytes != null) {
+          //withProtection()：这是UUID，ourPath被组织为basePath/uuid-lock-序号
+            ourPath = (String)((ACLBackgroundPathAndBytesable)client.create().creatingParentContainersIfNeeded().withProtection().withMode(CreateMode.EPHEMERAL_SEQUENTIAL)).forPath(path, lockNodeBytes);
+        } else {
+            ourPath = (String)((ACLBackgroundPathAndBytesable)client.create().creatingParentContainersIfNeeded().withProtection().withMode(CreateMode.EPHEMERAL_SEQUENTIAL)).forPath(path);
+        }
+
+        return ourPath;
+    }
+
+    public String fixForSorting(String str, String lockName) {
+        return standardFixForSorting(str, lockName);
+    }
+		//截取“lock-序号”结尾的部分
+    public static String standardFixForSorting(String str, String lockName) {
+        int index = str.lastIndexOf(lockName);
+        if (index >= 0) {
+            index += lockName.length();
+            return index <= str.length() ? str.substring(index) : "";
+        } else {
+            return str;
+        }
+    }
+
+    static void validateOurIndex(String sequenceNodeName, int ourIndex) throws KeeperException {
+        if (ourIndex < 0) {
+            throw new NoNodeException("Sequential path not found: " + sequenceNodeName);
+        }
+    }
+}
+
+```
+
+## InterProcessSemaphoreMutex（不可重入排他锁）
+
+todo
+
+参考：
+
+1. [跟着实例学习ZooKeeper的用法： 分布式锁](http://ifeve.com/zookeeper-lock/)
+2. [可重入锁vs非可重入锁](https://www.jianshu.com/p/e25983256448)
+3. [Zookeeper客户端Curator可重入排它锁InterProcessMutex](https://blog.csdn.net/ystyaoshengting/article/details/105014707)
+4. [分布式锁-zk临时节点](https://zhuanlan.zhihu.com/p/132765704)
+
