@@ -3,11 +3,11 @@
 layout: post
 title: "http请求因为content-length设置错误导致结果不正常"
 subtitle: "Request method 'ET' not supported"
-date: 2020-9-14
+date: 2020-8-11
 author: liying
 category: http
 tags: http,content-length
-finished: false
+finished: true
 ---
 ## 遇到的问题
 
@@ -118,7 +118,7 @@ if (!isAsync() || getErrorState().isError()) {
 再**调用flip()方法，切换为读就绪状态**
 
 ```java
-			if (byteBuffer.position() > 0) {
+if (byteBuffer.position() > 0) {
             if (byteBuffer.remaining() > 0) {
                 // Copy leftover bytes to the beginning of the buffer
                 byteBuffer.compact();
