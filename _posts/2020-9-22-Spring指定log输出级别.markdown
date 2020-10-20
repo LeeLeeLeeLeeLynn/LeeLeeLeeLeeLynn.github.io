@@ -13,7 +13,9 @@ finished: true
 
 
 
-
+```properties
+logging.level.com.hellobike.tesla.utils.http.OkHttpHelper=ERROR
+```
 
 
 

@@ -9,6 +9,10 @@ tags: java,DelayQueue
 finished: true
 ---
 
+## DelayQueue
+
+DelayQueue一般用于延时任务，用一个无界队列来实现，
+
 ```
 @PostConstruct
 public void dropConsumer() {
@@ -29,6 +33,8 @@ public void dropConsumer() {
     });
 }
 ```
+
+
 
 ```
 @Data

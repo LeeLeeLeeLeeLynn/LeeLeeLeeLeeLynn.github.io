@@ -1,0 +1,306 @@
+---
+layout: post
+title: "linux常用命令"
+subtitle: "常用命令记录"
+date: 2020-10-20
+author: liying
+category: linux
+tags: linux
+finished: false
+---
+
+## top
+
+按key排序展示。
+
+```bash
+top [-o <key>] [-O <secondaryKey>]
+   keys: pid (default), command, cpu, cpu_me, cpu_others, csw,
+				time, threads, ports, mregion, mem, rprvt, purg, vsize, vprvt,
+				kprvt, kshrd, pgrp, ppid, state, uid, wq, faults, cow, user,
+				msgsent, msgrecv, sysbsd, sysmach, pageins, boosts, instrs, cycles
+```
+
+e.g.
+
+```bash
+#根据内存使用大小top排序
+top -o mem
+```
+
+
+
+## 端口占用
+
+```bash
+#9092端口占用
+lsof -i:9092
+
+#9092端口占用
+netstat -tunlp|grep 9092
+```
+
+
+
+## 查看socket连接
+
+```bash
+#8086端口建立的连接
+netstat -apn | grep 8086
+
+#与10.111.24.146建立的连接数
+netstat -nat|grep 10.111.24.146|wc -l
+```
+
+
+
+## jvm
+
+```bash
+#java进程
+ps -ef | grep java
+
+#后台启动java进程 输出写入到jvm_std.log
+nohup java -jar -Denv=pro AppHmsAlert-1.0.0.jar >> ~/jvm_std.log &
+
+# 查看进程号为2483的堆栈信息
+jstack -l 2483
+
+#堆栈信息重定向到文件
+jstack -l 2483 >> stack.txt 
+```
+
+
+
+## logkit
+
+```bash
+## 查看logkit进程
+ps axu | grep logkit
+```
+
+logkit 地址：http://ip:3000/#/
+
+
+
+## influxdb
+
+```bash
+#influx 日志默认地址
+tail -200  /var/log/influxdb/influxd.log
+
+#进入influxdb
+influx
+```
+
+
+
+```sql
+--指定db
+use hms_monitor
+
+--格式化日期 
+precision rfc3339
+
+--查看hms保留策略
+SHOW RETENTION POLICIES ON hms_monitor
+```
+
+
+
+## kafka
+
+Kafka消息量重置
+
+​	•	确定topic作用域——当前有3种作用域指定方式：--all-topics（为consumer group下所有topic的所有分区调整位移），--topic t1 --topic t2（为指定的若干个topic的所有分区调整位移），--topic t1:0,1,2（为指定的topic分区调整位移）
+
+​	•	确定位移重设策略——当前支持8种设置规则：
+
+​	◦	--to-earliest：把位移调整到分区当前最小位移
+
+​	◦	--to-latest：把位移调整到分区当前最新位移
+
+​	◦	--to-current：把位移调整到分区当前位移
+
+​	◦	--to-offset <offset>： 把位移调整到指定位移处
+
+​	◦	--shift-by N： 把位移调整到当前位移 + N处，注意N可以是负数，表示向前移动
+
+​	◦	--to-datetime <datetime>：把位移调整到大于给定时间的最早位移处，datetime格式是yyyy-MM-ddTHH:mm:ss.xxx，比如2017-08-04T00:00:00.000
+
+​	◦	--by-duration <duration>：把位移调整到距离当前时间指定间隔的位移处，duration格式是PnDTnHnMnS，比如PT0H5M0S
+
+​	◦	--from-file <file>：从CSV文件中读取调整策略
+
+​	•	确定执行方案——当前支持3种方案：
+
+​	◦	什么参数都不加：只是打印出位移调整方案，不具体执行
+
+​	◦	--execute：执行真正的位移调整
+
+​	◦	--export：把位移调整方案按照CSV格式打印，方便用户成csv文件，供后续直接使用
+
+
+
+bin/kafka-consumer-groups.sh --bootstrap-server 192.168.11.101:9092,192.168.11.102:9092,192.168.11.103:9092,192.168.1.173:9092,192.168.5.29:9092,192.168.5.30:9092 --group shenzhou_un_rec_consumer --reset-offsets --topic aries_binlog_order --to-latest --execute 
+
+
+
+1. --to-earliest
+
+bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group test-group --reset-offsets --all-topics --to-earliest —execute
+
+上面输出表明，所有分区的位移都已经被重设为0
+
+
+
+2. --to-latest
+
+bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group test-group --reset-offsets --all-topics --to-latest —execute
+
+上面输出表明，所有分区的位移都已经被重设为最新位移，即1,000,000
+
+
+
+
+
+3.--to-offset <offset>
+
+bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group test-group --reset-offsets --all-topics --to-offset 500000 --execute
+
+Note: This will only show information about consumers that use the Java consumer API (non-ZooKeeper-based consumers).
+
+
+
+TOPIC PARTITION NEW-OFFSET 
+
+test 0 500000 
+
+test 1 500000 
+
+test 4 500000 
+
+test 3 500000 
+
+test 2 500000 
+
+上面输出表明，所有分区的位移都已经调整为给定的500000
+
+
+
+4. --to-current
+
+
+
+bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group test-group --reset-offsets --all-topics --to-current --execute 
+
+Note: This will only show information about consumers that use the Java consumer API (non-ZooKeeper-based consumers).
+
+
+
+TOPIC PARTITION NEW-OFFSET 
+
+test 0 500000 
+
+test 1 500000 
+
+test 4 500000 
+
+test 3 500000 
+
+test 2 500000 
+
+输出表明所有分区的位移都已经被移动到当前位移（这个有点傻，因为位移距上一步没有变动）
+
+
+
+5. --shift-by N
+
+向前移动N个位移
+
+bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group test-group --reset-offsets --all-topics --shift-by -100000 --execute 
+
+Note: This will only show information about consumers that use the Java consumer API (non-ZooKeeper-based consumers). 
+
+
+
+TOPIC PARTITION NEW-OFFSET 
+
+test 0 400000 
+
+test 1 400000 
+
+test 4 400000 
+
+test 3 400000 
+
+test 2 400000 
+
+输出表明所有分区的位移被移动到(500000 - 100000) = 400000处
+
+
+
+
+
+6.--to-datetime 
+
+
+
+bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group test-group --reset-offsets --all-topics --to-datetime 2017-08-04T14:30:00.000 
+
+Note: This will only show information about consumers that use the Java consumer API (non-ZooKeeper-based consumers).TOPIC PARTITION NEW-OFFSET 
+
+test 0 1000000 
+
+test 1 1000000 
+
+test 4 1000000 
+
+test 3 1000000 
+
+test 2 1000000 
+
+将所有分区的位移调整为2017年8月4日14：30之后的最早位移
+
+
+
+7. --by-duration
+
+bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group test-group --reset-offsets --all-topics --by-duration PT0H30M0S
+
+Note: This will only show information about consumers that use the Java consumer API (non-ZooKeeper-based consumers).
+
+
+
+TOPIC PARTITION NEW-OFFSET 
+
+test 0 1000000 
+
+test 1 1000000 
+
+test 4 1000000 
+
+test 3 1000000 
+
+test 2 1000000 
+
+将所有分区位移调整为30分钟之前的最早位移
+
+
+
+
+
+bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group test-group --reset-offsets --all-topics --to-latest —execute
+
+
+
+
+
+bin/kafka-consumer-groups.sh --bootstrap-server 192.168.11.101:9092,192.168.11.102:9092,192.168.11.103:9092,192.168.1.173:9092,192.168.5.29:9092,192.168.5.30:9092 --group shenzhou_un_rec_consumer --reset-offsets --all-topics --to-latest --execute 
+
+
+
+
+
+
+

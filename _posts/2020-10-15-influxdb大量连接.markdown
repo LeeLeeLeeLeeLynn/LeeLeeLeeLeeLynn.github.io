@@ -1,0 +1,109 @@
+---
+layout: post
+title: "Influxdb大量写入请求失败"
+subtitle: "org.influxdb.InfluxDBIOException: java.net.ConnectException: Failed to connect to /ip:8086"
+date: 2020-10-15
+author: liying
+category: influx
+tags: [influx, linux]
+finished: true
+---
+
+## influxdb大量连接超时
+
+我们使用两个influxdb库做监控数据的存储，一主一备，同时写入。但是在执行写入操作时，客户端报出大量influxdb连接失败的异常。
+
+### 定位问题
+
+开始怀疑是influxdb在接收大量的写入请求时，无法及时处理，导致了大量请求超时关闭。但当只写一个库时则服务不报错，数据能够正常写入。由于不管写一个库还是两个库，对于单个库的写入压力是相同的，所以可以大致定位，问题在客户端。
+
+```shell
+##查看8086端口上的网络连接
+netstat -apn | grep 8086
+```
+
+看到influxdb服务端的8086端口与客户端只建立了10个连接。
+
+![image-20201015153505149](../img/image-20201015153505149.png)
+
+而从客户端可以看到一共有20000多个连接，且都处于TIME_WAITED状态。TIME_WAITED状态是关闭请求方特有的，所以有大量的客户端连接处于等待2MSL时间再关闭的状态。
+
+```shell
+##查询本机与ip为{ip}建立的连接数统计
+netstat -nat|grep {ip}|wc -l
+```
+
+![image-20201015154352129](/Users/liying/Library/Application Support/typora-user-images/image-20201015154352129.png)
+
+
+
+由于需要写入的数据量非常大，所以建立了大量的连接，而influxdb写入速度非常快，导致大量的短链接处于等待关闭状态。
+
+那么：
+
+1. **为什么写两个库就会频繁出现无法建立与数据库连接的情况呢？**
+
+2. **为什么连接没有复用呢？**
+
+3. **如何解决问题？**
+
+   
+
+## 原因
+
+#### **为什么写两个库就会频繁出现无法建立与数据库连接的情况呢？**
+
+一个建立了20000+的连接，不同的连接占用了不同的端口，而一旦使用两个库，则会产生40000+的连接，即40000+的端口占用，到达了服务器的极限。
+
+仔细看报错有出现 `Cannot assign requested address`。这是由于linux分配的客户端连接端口用尽，无法建立socket连接所致，虽然socket正常关闭，但是端口不是立即释放，而是处于TIME_WAIT状态，默认等待60s后才释放。
+
+
+
+#### 为什么连接没有复用呢？
+
+influxdb的java客户端，使用retrofit向influxdb发送写入请求。每个请求使用新的Call去调用，没有使用复用连接池也没有设置keep-alive。所以每个请求会与influxdb所在服务器建立一个socket连接。
+
+而查看客户端部署的机器的系统配置
+
+```shell
+cat /etc/sysctl.conf
+```
+
+其中没有对连接复用的配置，使得机器无法去自动对处于TIME_WAIT状态的连接进行重用。
+
+
+
+##  解决方法
+
+编辑 `/etc/sysctl.conf`文件，该文件需要sudo权限才可以编辑。
+
+```shell
+sudo vi /etc/sysctl.conf
+```
+
+添加以下配置：
+
+```shell
+net.ipv4.ip_forward=1  #表示开启对于TCP时间戳的支持,若该项设置为为0，则net.ipv4.tcp_tw_reuse设置不起作用，该值系统默认是0
+
+net.ipv4.tcp_syncookies = 1  #表示开启对于TCP时间戳的支持,若该项设置为为0，则net.ipv4.tcp_tw_reuse设置不起作用，该值系统默认是0
+
+net.ipv4.tcp_tw_reuse = 1  #表示开启重用。允许将TIME-WAIT sockets重新用于新的TCP连接，默认为0，表示关闭
+
+net.ipv4.tcp_tw_recycle = 1  #表示开启TCP连接中TIME-WAIT sockets的快速回收，默认为0，表示关闭
+
+net.ipv4.tcp_fin_timeout = 30  #修改系統默认的TIMEOUT时间，默认是60
+```
+
+编辑完成后，执行命令使参数立即生效。
+
+``` shell
+sudo /sbin/sysctl -p
+```
+
+完成后，再去查看socket连接数，不断减少。最后稳定在300左右，远远小于之前的20000+个。
+
+服务也没有再报错无法建立连接了。done！
+
+
+
