@@ -5,7 +5,7 @@ subtitle: "MacOs归档工具可以解压zip，不支持rar格式解压，AppStor
 date: 2020-07-14
 author: liying
 category: environment
-tags: environment,MacOS,UnRAR
+tags: [environment,MacOS,UnRAR]
 finished: true 
 ---
 ## UnRAR 

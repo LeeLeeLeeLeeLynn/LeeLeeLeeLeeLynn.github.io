@@ -5,7 +5,7 @@ subtitle: "DelayQueue使用和原理"
 date: 2020-9-20
 author: liying
 category: http
-tags: java,DelayQueue
+tags: [java,DelayQueue]
 finished: true
 ---
 

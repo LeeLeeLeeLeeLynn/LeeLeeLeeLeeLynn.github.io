@@ -5,7 +5,7 @@ subtitle: "MacOS切换shell"
 date: 2020-07-13
 author: liying
 category: environment
-tags: environment,MacOS
+tags: [environment,MacOS]
 finished: true 
 ---
 ## bash & zsh

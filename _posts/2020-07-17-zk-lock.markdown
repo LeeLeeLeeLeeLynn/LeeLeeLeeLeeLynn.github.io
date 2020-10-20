@@ -6,7 +6,7 @@ subtitle: "分布式的锁全局同步，意味着任何一个时间点不会有
 date: 2020-07-17
 author: liying
 category: zookeeper
-tags: zookeeper,lock,java
+tags: [zookeeper,lock,java]
 finished: true 
 ---
 ## 可重入锁 vs 不可重入锁

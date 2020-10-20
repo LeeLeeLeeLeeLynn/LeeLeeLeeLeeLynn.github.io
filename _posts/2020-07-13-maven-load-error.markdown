@@ -5,7 +5,7 @@ subtitle: "公司内部使用私有maven仓库，加载maven时出错，需要�
 date: 2020-07-13
 author: liying
 category: environment
-tags: environment,MacOS,maven
+tags: [environment,MacOS,maven]
 finished: true 
 ---
 ## maven 的setting.xml文件 

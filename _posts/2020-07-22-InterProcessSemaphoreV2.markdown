@@ -5,7 +5,7 @@ subtitle: "InterProcessSemaphoreV2使用令牌桶的算法实现分布式信号�
 date: 2020-07-22
 author: liying
 category: zookeeper
-tags: zookeeper,lock,java
+tags: [zookeeper,lock,java]
 finished: false 
 ---
 ## InterProcessSemaphoreV2源码
