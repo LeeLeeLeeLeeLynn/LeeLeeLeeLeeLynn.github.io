@@ -33,7 +33,7 @@ netstat -apn | grep 8086
 netstat -nat|grep {ip}|wc -l
 ```
 
-![image-20201015154352129](/Users/liying/Library/Application Support/typora-user-images/image-20201015154352129.png)
+![image-20201015154352129](../img/image-20201015154352129.png)
 
 
 
