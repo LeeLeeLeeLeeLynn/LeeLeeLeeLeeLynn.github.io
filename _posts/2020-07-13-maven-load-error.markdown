@@ -20,7 +20,7 @@ finished: true
 
 用户配置大于全局配置。
 
-在idea中可以对maven的setting文件进行配置，使用配置好的setting文件。![maven-setting](/img/maven-setting.png)
+在idea中可以对maven的setting文件进行配置，使用配置好的setting文件。![maven-setting](../img/maven-setting.png)
 
 在idea中可以override用户配置文件setting.xml的目录，直接使用图形界面可以拉到正确的依赖。
 

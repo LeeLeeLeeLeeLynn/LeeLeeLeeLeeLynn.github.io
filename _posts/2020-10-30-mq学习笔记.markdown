@@ -1,0 +1,38 @@
+---
+layout: post
+title: "rocketmq学习笔记"
+subtitle: ""
+date: 2020-10-30
+author: liying
+category: rocketmq
+tags: rocketmq
+finished: false
+
+---
+
+* 目录
+{:toc #markdown-toc}
+
+
+## 整体架构
+
+一个完整的消息收发过程，
+
+#### nameserver
+
+#### broker
+
+#### queue
+
+和kafka的partition类似，一个consumer可以分配多个queue，但是一个queue只能属于一个consumer。
+
+queue的个数，决定了consumer最多可以有多少个，但并不影响消费性能。
+
+#### producer
+
+#### consumer
+
+
+
+
+

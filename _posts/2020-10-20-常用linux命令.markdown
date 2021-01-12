@@ -30,6 +30,27 @@ top -o mem
 
 
 
+## 机器信息
+
+```shell
+# 查看物理CPU个数
+cat /proc/cpuinfo| grep "physical id"| sort| uniq| wc -l
+
+# 查看每个物理CPU中core的个数(即核数)
+cat /proc/cpuinfo| grep "cpu cores"| uniq
+
+# 查看逻辑CPU的个数
+cat /proc/cpuinfo| grep "processor"| wc -l
+
+# 查看CPU信息（型号）
+cat /proc/cpuinfo | grep name | cut -f2 -d: | uniq -c
+
+# 查看内 存信息
+cat /proc/meminfo
+```
+
+
+
 ## 端口占用
 
 ```bash
@@ -38,6 +59,9 @@ lsof -i:9092
 
 #9092端口占用
 netstat -tunlp|grep 9092
+
+#端口状态
+ss -tuln
 ```
 
 
@@ -50,6 +74,18 @@ netstat -apn | grep 8086
 
 #与10.111.24.146建立的连接数
 netstat -nat|grep 10.111.24.146|wc -l
+
+#查看 tcp连接数最多的十个ip
+netstat -ntu | grep tcp | awk '{print $5}' | sort | uniq -c |sort -nr|head -10
+```
+
+
+
+## 文件内容搜索排序
+
+```bash
+查找request.log中包含14:3的条目的第7部分内容（按空格分割）排序并统计数量，取前十条
+cat request.log|grep 14:3|awk '{print $7}' |sort|uniq -c|sort -nr |head -10
 ```
 
 
@@ -68,6 +104,9 @@ jstack -l 2483
 
 #堆栈信息重定向到文件
 jstack -l 2483 >> stack.txt 
+
+#查看java进程
+jps
 ```
 
 
@@ -104,6 +143,31 @@ precision rfc3339
 
 --查看hms保留策略
 SHOW RETENTION POLICIES ON hms_monitor
+
+--查看measurements,tag,field
+SHOW MEASUREMENTS; SHOW TAG KEYS; SHOW TAG VALUES; SHOW FIELD KEYS
+```
+
+
+
+## rocketmq
+
+```bash
+# 启动NameServer
+nohup sh bin/mqnamesrv & 
+
+# 启动brokerclus
+nohup sh bin/mqbroker -c conf/broker.conf -n localhost:9876 & 
+
+# 关闭broker
+> sh bin/mqshutdown broker 
+The mqbroker(36695) is running... 
+Send shutdown request to mqbroker(36695) OK 
+
+# 关闭namesrv
+> sh bin/mqshutdown namesrv 
+The mqnamesrv(36664) is running... 
+Send shutdown request to mqnamesrv(36664) OK
 ```
 
 

@@ -1,0 +1,19 @@
+```
+layout: post
+title: "JVM内存模型"
+subtitle: "Java1.8 vs Java1.7内存模型变化"
+date: 2020-11-23
+author: liying
+category: java
+tags: [java,jvm]
+finished: false
+```
+
+[toc]
+
+## 内存模型( JAVA1.6 => JAVA1.8)
+
+
+
+从java1.7开始，逐渐废弃永久代
+

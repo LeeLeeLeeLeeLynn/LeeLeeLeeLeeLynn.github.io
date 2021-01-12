@@ -7,11 +7,9 @@ author: liying
 category: java
 tags: [java,线程池]
 finished: true
-
-
 ---
 
-* 目录   //必须，*号后面的内容随意。
+* 目录
 {:toc #markdown-toc}
 ## 问题
 

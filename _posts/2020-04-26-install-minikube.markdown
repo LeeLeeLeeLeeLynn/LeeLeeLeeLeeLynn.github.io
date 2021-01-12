@@ -22,8 +22,8 @@ output: [Unable to find image 'gcr.io/k8s-minikube/kicbase:v0.0.5@sha256:3ddd846
 
 内网无法访问gcr.io上的镜像，架梯子发现还是不行。需要设置http代理，如图。
 
-![http-proxy](/img/http_proxy.png)
+![http-proxy](./img/http_proxy.png)
 
 然后如下图即启动完成。
 
-![done-minikube](/img/done_minikube.png)
+![done-minikube](./img/done_minikube.png)

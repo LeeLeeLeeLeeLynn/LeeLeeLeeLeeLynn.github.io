@@ -1,0 +1,88 @@
+---
+layout: post
+title: "为什么JVM变量以-D开头？"
+subtitle: "通常运行java程序时，我们会输入命令：java -jar -Doptions=xxx yyyy.jar 。那么为什么变量需要以-D开头呢？"
+date: 2021-01-11
+author: liying
+category: java
+tags: [jvm,java]
+finished: true
+
+
+---
+
+* 目录
+{:toc #markdown-toc}
+
+
+## 为什么JVM自定义变量以-D开头？
+
+```bash
+java -jar -Doptions=xxx yyyy.jar
+```
+
+为什么不能写作
+
+```bash
+java -jar -options=xxx yyyy.jar
+```
+
+当这样写时，会遇到以下报错：
+
+```bash
+Unrecognized option: -options=xxx
+Error: Could not create the Java Virtual Machine.
+Error: A fatal exception has occurred. Program will exit.
+```
+
+原因：如果开放-参数名写法，那么即使当前的虚拟机可以运行，但是无法保证，下一代java虚拟机会不会将这个参数作为虚拟机参数，而不是自定义参数。那么怎么区分自定义参数“-option”和虚拟机参数“-option”呢？
+
+#### 
+
+## JVM变量前缀
+
+大部分JVM参数以 (`-D`, `-X`, `-XX`)开头
+
+JVM变量有以下几种分类：
+
+1. **标准参数（Standard Options）**：不仅仅是-D
+
+   大部分jvm通用
+
+   通常使用-Dxxx=value，来自定义系统变量。但通常时候经常使用不含-D的默认参数进行配置，如`-verbose`,`-client`等。
+
+   -D是用户自定义系统变量，是为了和其他区分开。
+
+2. **非标准化参数（Non-Standard Options）**：-X开头
+
+   仅适用于Java HotSpot Virtual Machine，如`-Xmssize`, `-Xmxsize`
+
+3. **高级运行时参数、高级JIT编译器参数、高级可维护性参数、高级垃圾收集参数**：-XX开头
+
+
+
+## 为什么是-D而不是其他字母？
+
+可能和Define单词对应，所以取D。
+
+jdk11的文档中有这么一段：
+
+```
+Redefines a property value. propertyName is the name of the property whose value you want to change and newValue is the value to change it to. [...]
+```
+
+redefines包含了单词define？
+
+
+
+参考：
+
+1. [Why do JVM arguments start with "-D"?](https://stackoverflow.com/questions/44745261/why-do-jvm-arguments-start-with-d)
+
+2. [Java Standard Options](https://docs.oracle.com/javase/8/docs/technotes/tools/windows/java.html#BABDJJFI)
+3. [in-java-d-what-does-the-d-stand-for](https://stackoverflow.com/questions/12518728/in-java-d-what-does-the-d-stand-for)
+
+
+
+
+
