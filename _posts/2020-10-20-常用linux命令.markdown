@@ -141,7 +141,7 @@ use hms_monitor
 --格式化日期 
 precision rfc3339
 
---查看hms保留策略
+--查看hms保留策略:
 SHOW RETENTION POLICIES ON hms_monitor
 
 --查看measurements,tag,field

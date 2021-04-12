@@ -37,9 +37,7 @@ Error: A fatal exception has occurred. Program will exit.
 
 原因：如果开放-参数名写法，那么即使当前的虚拟机可以运行，但是无法保证，下一代java虚拟机会不会将这个参数作为虚拟机参数，而不是自定义参数。那么怎么区分自定义参数“-option”和虚拟机参数“-option”呢？
 
-#### 
-
-## JVM变量前缀
+## JVM变量前缀有哪些？
 
 大部分JVM参数以 (`-D`, `-X`, `-XX`)开头
 
