@@ -1,0 +1,33 @@
+```
+layout: post
+title: "如何在线程池里的线程都执行完后再执行主线程"
+subtitle: "在需要提高性能的需求下，要将原本串行执行的代码块改成并行，但是要求执行完成后，主线程才能继续，如何做？"
+date: 2021-08-04
+author: liying
+category: java
+tags: [java,multi-thread]
+finished: true
+```
+
+[TOC]
+
+## 问题
+
+​	遇到一个需求，要将原本串行执行的代码块改成并发，用来提高性能，在批量执行完之后，才能执行后续的操作，即主线程才能继续。
+
+
+
+## 方法
+
+​	通过查询和尝试，总结了几种方法。
+
+#### 方法一
+
+
+
+参考：
+
+	1. [Java并发编程：Callable、Future和FutureTask](https://www.cnblogs.com/dolphin0520/p/3949310.html)
+ 	2. [如何等待java线程池中所有任务完成](https://blog.csdn.net/suifeng3051/article/details/25039949)
+ 	3. [SynchronousQueue使用实例](https://www.jianshu.com/p/b7f7eb2bc778)
+

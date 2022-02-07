@@ -1,0 +1,66 @@
+## python SimpleHTTPServer :快速共享Linux系统的某个目录　
+
+​		1）进入待分享的目录
+　　2）执行命令python -m SimpleHTTPServer 端口号
+　　　　注意：不填端口号则默认使用8000端口。
+　　3）浏览器访问该主机的地址：[http://IP](http://ip/):端口号/
+
+```bash
+python -m SimpleHTTPServer 8080
+```
+
+![这里写图片描述](/Users/liying/Documents/个人博客/LeeLeeLeeLeeLynn.github.io/img/161026150172671.jpg)
+
+参考：https://www.cnblogs.com/nopnog/p/8116848.html
+
+
+
+## jhat 查看堆dump文件
+
+```bash
+$ jhat heapdump.hprof
+Reading from heapdump.hprof...
+Dump file created Wed Jan 19 14:04:31 CST 2022
+Snapshot read, resolving...
+Resolving 975063 objects...
+Chasing references, expect 195 dots...................................................................................................................................................................................................
+Eliminating duplicate references...................................................................................................................................................................................................
+Snapshot resolved.
+Started HTTP server on port 7000
+```
+
+访问：http://ip:7000/histo/
+
+堆上的类直方图：
+
+![image-20220120105226477](/Users/liying/Documents/个人博客/LeeLeeLeeLeeLynn.github.io/img/image-20220120105226477.png)
+
+
+
+其他的查询访问ip:7000，页面拉到最下方：
+
+![image-20220120105421060](/Users/liying/Documents/个人博客/LeeLeeLeeLeeLynn.github.io/img/image-20220120105421060.png)
+
+## jvisualvm
+
+```bash
+jvisualvm
+```
+
+查看启动参数 -Dcom.sun.management.jmxremote.port=51433 确认JMX采集端口，远程连接
+
+![image-20220120110255490](/Users/liying/Library/Application Support/typora-user-images/image-20220120110255490.png)
+
+下载dump文件后，通过jvisualvm查看图形化的堆信息
+
+![image-20220120110007673](/Users/liying/Library/Application Support/typora-user-images/image-20220120110007673.png)
+
+
+
+## 设置JVM启动参数 OOM时自动dump
+
+```bash
+-XX:+HeapDumpOnOutOfMemoryError 
+-XX:HeapDumpPath=/workspace/carkey/AppHmsDashBoardService/latest//logs/heapdump.hprof
+```
+

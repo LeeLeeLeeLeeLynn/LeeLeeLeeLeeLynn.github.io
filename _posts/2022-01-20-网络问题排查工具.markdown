@@ -1,0 +1,24 @@
+## tcpdump linux抓包命令
+
+注：需要用管理员权限运行
+
+常用命令
+
+```bash
+#抓取8080端口的数据包
+
+tcpdump -i any port 8080 
+
+#抓取从192.168.1.110发送到192.168.1.111的数据包
+
+tcpdump -i any src host 192.168.1.110 and dst host 192.168.1.111
+
+#抓取192.168网段除了192.168.1.110的请求的数据包
+
+tcpdump -i any src net 192.168 and 'src host not 192.168.1.110'
+
+#抓取8080端口的数据包并写入dump.log文件中
+
+tcpdump -i any port 8080 -w dump.log
+```
+

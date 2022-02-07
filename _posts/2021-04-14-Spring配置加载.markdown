@@ -1,0 +1,94 @@
+---
+layout: post
+title: "Spring加载不到配置文件？"
+subtitle: "注入spring配置的方式"
+date: 2021-04-14
+author: liying
+category: java
+tags: [java,spring]
+finished: true
+---
+
+* 目录
+{:toc #markdown-toc}
+
+
+## Spring读取Map配置文件
+
+类示例：
+
+```java
+@ConfigurationProperties(prefix = "region")
+@Component
+@Data
+public class ZkRegionConfig {
+    private Map<String, String> zks = new HashMap<>();
+
+}
+```
+
+properties文件示例：
+
+```properties
+region.zks.a=yyy
+region.zks.b=xxx
+```
+
+配置文件注入:
+
+1. 构造函数注入
+
+```java
+@Autowired
+private Routers(ZkRegionConfig zkRegionConfig) {
+		//...do something
+}
+```
+
+2. field注入
+
+```java
+@Autowired
+private ZkRegionConfig zkRegionConfig;
+```
+
+
+
+## 普通类如何注入配置
+
+当类不通过Spring进行管理，而配置类由Spring管理时，无法同上直接注入配置。
+
+1. 在普通类中，定义一个ApplicationContext对象 ，在需要操作的函数中，通过ApplicationContext对象引入注入的类。
+
+```java
+public class MyTest{
+  private static ApplicationContext applicationContext;
+
+  public static void setApplicationContext(ApplicationContext context) {
+    applicationContext = context;
+  }
+  
+   public static void doSomething() {
+    RestTemplate _restTemplate = applicationContext.getBean(RestTemplate.class);
+    ........
+  } 
+}
+```
+
+2. 在启动类中，得到ApplicationContext 对象，然后传递到自定义的类中，注意——只能在这个地方传入，否则无法正确获取ApplicationContext 对象；
+
+```java
+@SpringBootApplication
+public class Application{
+
+  public static void main(String[] args) {
+    final ApplicationContext applicationContext = 
+                     SpringApplication.run(Application.class, args);
+    MyTest.setApplicationContext(applicationContext);
+  }
+  
+}
+```
+
+参考：[Spring boot 项目中让非Spring管理的类获得一个注入的Bean]([https://blog.csdn.net/huangyaa729/article/details/84326721]())
+

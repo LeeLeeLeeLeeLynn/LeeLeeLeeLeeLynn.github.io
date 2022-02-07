@@ -1,0 +1,151 @@
+```
+layout: post
+title: "如何对字符串加synchronized锁"
+subtitle: "希望对一段代码加锁，然而对于允许在传参不同的情况下并发,如何做？"
+date: 2021-07-12
+author: liying
+category: java
+tags: [java,multi-thread]
+finished: true
+```
+
+[TOC]
+
+## 问题
+
+​		服务持有多个Producer连接，使用`Map<String, ProducerProxy>`的形式，存在内存中，String为主题的名称，对于ProducerProxy来说全局唯一。在创建多个Producer连接时，由于相同主题名称的Producer，只能创建一个，需要对其加锁，又不希望阻塞其他不同名的Producer创建。
+
+​	能想到的方式是对整个代码块加synchronized锁，synchronized是对象锁，对于同一个对象，则需要等待锁才能执行这块代码。使用当前的对象加锁则粒度过大了。
+
+```java
+ProducerProxy producer = clusterTopicProducers.get(cachekey);
+if (producer == null) {
+  //对整个map加锁
+	synchronized (clusterTopicProducers) {
+		producer = clusterTopicProducers.get(cachekey);
+		if( producer == null) {
+				//省略创建
+  		clusterTopicProducers.put(cachekey, producer);
+		}
+  }
+}
+```
+
+​	考虑使用ProducerProxy的唯一key主题名称来加锁。
+
+```java
+ProducerProxy producer = clusterTopicProducers.get(cachekey);
+if (producer == null) {
+  //对key加锁
+	synchronized (cachekey) {
+		producer = clusterTopicProducers.get(cachekey);
+		if( producer == null) {
+				//省略创建
+  		clusterTopicProducers.put(cachekey, producer);
+		}
+  }
+}
+```
+
+​	但是结果显示并没有加锁成功，大量并发情况下仍然会创建多次。
+
+## 测试
+
+1. 创建5个线程，对new String("111")进行锁。
+
+```java
+public static void main(String[] args) throws InterruptedException {
+        Thread[] threads = new Thread[5];
+        for (int i = 0; i < 5; i++) {
+            int finalI = i;
+            threads[i] = new Thread(() -> {
+                String lock=new String("111");
+                try {
+                    run(lock, finalI);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+        for (Thread thread : threads) {
+            thread.start();
+        }
+    }
+
+    public static void run(String lock, int i) throws InterruptedException {
+        synchronized (lock) {
+            System.out.println("--------thread" + i + " is running----- ");
+            Thread.sleep(5000);
+            System.out.println("--------thread" + i + " stopped----- ");
+        }
+    }
+```
+
+结果：5个线程仍然并发执行
+
+![image-20210805175406503](/Users/liying/Documents/个人博客/LeeLeeLeeLeeLynn.github.io/img/image-20210805175406503.png)
+
+2. 考虑 synchronize锁，对于new String视为不同的对象，所以没加锁，直接使用“111”加锁。
+
+```java
+public static void main(String[] args) throws InterruptedException {
+        Thread[] threads = new Thread[5];
+        for (int i = 0; i < 5; i++) {
+            int finalI = i;
+            threads[i] = new Thread(() -> {
+                String lock= "111";
+                try {
+                    run(lock, finalI);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+        for (Thread thread : threads) {
+            thread.start();
+        }
+    }
+
+    public static void run(String lock, int i) throws InterruptedException {
+        synchronized (lock) {
+            System.out.println("--------thread" + i + " is running----- ");
+            Thread.sleep(5000);
+            System.out.println("--------thread" + i + " stopped----- ");
+        }
+    }
+```
+
+![image-20210809163611940](/Users/liying/Documents/个人博客/LeeLeeLeeLeeLynn.github.io/img/image-20210809163611940.png)
+
+## 总结
+
+java String 复习:
+
+JVM内存区域里面有一块常量池，关于常量池的分配：
+
+1. JDK6的版本，常量池在持久代PermGen中分配
+2. JDK7的版本，常量池在堆Heap中分配
+
+字符串是存储在常量池中的，有两种类型的字符串数据会存储在常量池中：
+
+1. 编译期就可以确定的字符串，即使用""引起来的字符串，比如**String a = "123"**、**String b = "1" + B.getStringDataFromDB() + "2" + C.getStringDataFromDB()**、这里的"123"、"1"、"2"都是编译期间就可以确定的字符串，因此会放入常量池，而B.getStringDataFromDB()、C.getStringDataFromDB()这两个数据由于编译期间无法确定，因此它们是在堆上进行分配的
+2. 使用String的intern()方法操作的字符串，比如**String b = B.getStringDataFromDB().intern()**，尽管B.getStringDataFromDB()方法拿到的字符串是在堆上分配的，但是由于后面加入了intern()，因此B.getStringDataFromDB()方法的结果，会写入常量池中
+
+常量池中的String数据有一个特点：**每次取数据的时候，如果常量池中有，直接拿常量池中的数据；如果常量池中没有，将数据写入常量池中并返回常量池中的数据**。
+
+
+
+## 解决
+
+由于使用的是传参的方式，来获取proxy的cachekey，那么是无法在编译期就确定的字符串。于是使用intern的方式获取相同的字符串对象进行加锁。
+
+```java
+synchronized (cachekey.intern())
+```
+
+
+
+参考：https://www.cnblogs.com/xrq730/p/6662232.html
+
+
+

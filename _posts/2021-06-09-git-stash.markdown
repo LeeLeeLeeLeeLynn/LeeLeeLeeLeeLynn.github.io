@@ -1,0 +1,39 @@
+```
+layout: post
+title: "git stash"
+subtitle: "git stash pop 出现冲突如何撤销？"
+date: 2021-06-09
+author: liying
+category: git
+tags: [git]
+finished: true
+```
+
+[toc]
+
+## git stash
+
+​	`git stash `用于保存和恢复当前的工作进度。通常在开发过程中需要切换到其他分支的时候，我们会使用git stash 保存现场。然后在处理完checkout回来这个分支时在`git stash pop`出来上一次保存的内容。
+
+
+
+## git stash pop 出现冲突如何撤销？
+
+#### 问题
+
+​	从别的分支试图切换回开发分支，由于未提交的更改，没有切换成功。然后(｡ì _ í｡)本人没注意以为切回来了，就使用了`git stash pop`出了上一次保存的现场，然后出现了冲突需要merge...吓了一条想再stash的时候出现提示：
+
+```bash
+xxx.java:needs merge
+```
+
+所以如何重新切换到原来的分支并恢复之前保存的内容呢？
+
+
+
+#### 解决
+
+1. 明确`git stash pop `之后如果出现冲突，则不会丢失上一次pop出来的内容。
+2. 使用`git stash list`查看stash的列表，发现上一次stash的内容还在列表的第一项。
+3. 所以先解决冲突后，强制切换到之前的分支，再进行pop。
+4. done！

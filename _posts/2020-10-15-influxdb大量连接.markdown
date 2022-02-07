@@ -32,7 +32,8 @@ netstat -apn | grep 8086
 
 ```shell
 ##查询本机与ip为{ip}建立的连接数统计
-netstat -nat|grep {ip}|wc -l
+SELECT Count(value) FROM "kafka_topic_info" WHERE "clusterName" = 'uat-kafka-002' AND "topicName" = 'yixin_test_topic' AND "name" = 'oneMinuteRate' AND "attributeName" = 'MessagesInPerSec' and brokerName='' and "value" > 1 and "time" > now()-5m ;
+{ip}|wc -l
 ```
 
 ![image-20201015154352129](../img/image-20201015154352129.png)

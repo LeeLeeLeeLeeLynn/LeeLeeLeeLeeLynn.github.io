@@ -1,0 +1,11 @@
+```
+layout: post
+title: "RocketMQ顺序消费"
+subtitle: "RocketMQ如何实现顺序消费"
+date: 2021-07-06
+author: liying
+category: RocketMQ
+tags: [RocketMQ,java]
+finished: true
+```
+

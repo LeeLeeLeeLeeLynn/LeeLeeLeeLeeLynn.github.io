@@ -1,0 +1,94 @@
+```
+layout: post
+title: "maven编译指定版本"
+subtitle: "-source 1.5 中不支持 diamond 运算符，如何解决？"
+date: 2021-05-10
+author: liying
+category: maven
+tags: [maven]
+finished: true
+```
+
+[TOC]
+
+## 问题描述
+
+项目本地启动没有问题，但是上传到发布平台进行却遇到编译错误，错误信息如下：
+
+```bash
+-source 1.5 中不支持 diamond 运算符
+[ERROR]   (请使用 -source 7 或更高版本以启用 diamond 运算符)
+```
+
+字面上看是，编译使用的是1.5版本的jdk，而项目使用了1.7的运算符diamond，使得1.5编译器无法编译1.8的文件。
+
+注：
+
+diamond运算符指1.7以后的新特性：
+
+```java
+List<String> list = new ArrayList<String>(); // 老版本写法
+List<String> list = new ArrayList<>(); // JDK1.7及以后的写法
+```
+
+
+
+## 排查
+
+1. 考虑maven的默认编译版本是1.5，检查setting.xml
+
+   ```xml
+   <profile>
+       <id>jdk18</id>
+       <activation>
+           <activeByDefault>true</activeByDefault>
+           <jdk>1.8</jdk>
+       </activation>
+       <properties>
+           <maven.compiler.source>1.8</maven.compiler.source>         	 
+           <maven.compiler.target>1.8</maven.compiler.target>
+           <maven.compiler.compilerVersion>1.8</maven.compiler.compilerVersion>
+       </properties>
+   </profile>
+   ```
+
+   本地的maven配置指定了maven编译的版本为1.8，且本地编译项目没有问题。
+
+2. 考虑是发布平台使用Jenkins集成默认编译版本是1.5【确认原因】
+
+   
+
+## 解决
+
+1. 在pom文件中配置maven编译插件：（生效）
+
+```xml
+<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.1</version>
+				<configuration>
+					<encoding>UTF-8</encoding>
+          <!--	指定编译版本-->
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+					<optimize>true</optimize>
+				</configuration>
+</plugin>
+```
+
+2. 在pom中加入配置（*todo*：未测试）
+
+```xml
+<properties>
+	<maven.compiler.source>1.8</maven.compiler.source>
+	<maven.compiler.target>1.8</maven.compiler.target>
+</properties>
+```
+
+
+
+## 参考
+
+1. [genkins的报错排查](https://www.cnblogs.com/zdqc/p/10287074.html)
+
