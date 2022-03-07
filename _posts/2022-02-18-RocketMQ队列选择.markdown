@@ -1,0 +1,118 @@
+```
+layout: post
+title: "RocketMQ默认的队列选择策略"
+subtitle: "RocketMQ是如何均衡消息发送队列的呢？如果遇到broker异常，是否可以跳过当前broker呢？"
+date: 2022-02-18
+author: liying
+category: mq
+tags: [mq,RocketMQ]
+finished: true
+
+```
+
+[TOC]
+
+### RocketMQ队列选择	
+
+​	 	RocketMQ在发送消息时，如果未指定queueSelector或固定queue，则默认使用RoundRobin的方式选择对应的Queue，sendWhichQueue是一个int，存放在ThreadLocal中，每次选择队列时，sendWhichQueue与队列长度取模来轮询队列列表，sendWhichQueue+1。lastBrokerName为上一次使用但是失败的broker名称。
+
+```java
+    public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
+        //不是失败重试，lastBrokerName为空
+      	if (lastBrokerName == null) {
+            return selectOneMessageQueue();
+        } else {
+            int index = this.sendWhichQueue.getAndIncrement();
+            for (int i = 0; i < this.messageQueueList.size(); i++) {
+                int pos = Math.abs(index++) % this.messageQueueList.size();
+                if (pos < 0)
+                    pos = 0;
+                MessageQueue mq = this.messageQueueList.get(pos);
+              	//遍历寻找一个不是上次发送
+                if (!mq.getBrokerName().equals(lastBrokerName)) {
+                    return mq;
+                }
+            }
+            return selectOneMessageQueue();
+        }
+    }
+    public MessageQueue selectOneMessageQueue() {
+        int index = this.sendWhichQueue.getAndIncrement();
+        int pos = Math.abs(index) % this.messageQueueList.size();
+        if (pos < 0)
+            pos = 0;
+        return this.messageQueueList.get(pos);
+    }
+```
+
+​	假设一共2个broker，每个broker都有4个允许读写的队列，一共8个队列，如下表所示。那么选择顺序是如下：
+
+| broker   | Queue | 顺序 |
+| -------- | ----- | ---- |
+| broker_a | 0     | 1    |
+| broker_a | 1     | 2    |
+| broker_a | 2     | 3    |
+| broker_a | 3     | 4    |
+| broker_b | 0     | 5    |
+| broker_b | 1     | 6    |
+| broker_b | 2     | 7    |
+| broker_b | 3     | 8    |
+
+
+
+### Broker故障延迟机制	
+
+​	如遇到**某个Broker故障**时，如果按照上述方式，如broker__a故障，lastBrokerName为broker_b，则会首先使用broker_a的queue0，出错后重新选择，由于index++且队列是按broker顺序的，下一次挑选的时，会尝试使用broker_a的queue1，以此类推，将会遍历完整个broker_a的queue，带来性能损耗，是否能跳过故障的broker呢？
+
+​	RocketMQ提供了sendLatencyFaultEnable开关，表示是否开启故障延迟，默认是关闭的。
+
+```java
+    public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
+      //如果开启故障延迟  
+      if (this.sendLatencyFaultEnable) {
+            try {
+                int index = tpInfo.getSendWhichQueue().getAndIncrement();
+                for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
+                    int pos = Math.abs(index++) % tpInfo.getMessageQueueList().size();
+                    if (pos < 0)
+                        pos = 0;
+                    MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
+                  	//当前broker如果可用
+                    if (latencyFaultTolerance.isAvailable(mq.getBrokerName())) {
+                      	//如果不是失败重试，或 与上次失败使用的broker名称相同，直接返回mq
+                        if (null == lastBrokerName || mq.getBrokerName().equals(lastBrokerName))
+                            return mq;
+                    }
+                }
+								//尝试从latencyFaultTolerance中选择一个规避的broker
+                final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
+                int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
+              	//有可写的队列
+                if (writeQueueNums > 0) {
+                    final MessageQueue mq = tpInfo.selectOneMessageQueue();
+                  	//替换brokerName和queueId
+                    if (notBestBroker != null) {
+                        mq.setBrokerName(notBestBroker);
+                        mq.setQueueId(tpInfo.getSendWhichQueue().getAndIncrement() % writeQueueNums);
+                    }
+                    return mq;
+                } else {
+                  	//说明broker已不可写，tpInfo中也已经移除了这个broker的queue，所以
+                    //从latencyFaultTolerance也移除当前broker
+                    latencyFaultTolerance.remove(notBestBroker);
+                }
+            } catch (Exception e) {
+                log.error("Error occurred when selecting message queue", e);
+            }
+						//轮询选择
+            return tpInfo.selectOneMessageQueue();
+        }
+				//未开启开关，则都正常挑选流程
+        return tpInfo.selectOneMessageQueue(lastBrokerName);
+    }
+```
+
+​	
+
+​		如果未开启故障延迟开关，则调用` tpInfo.selectOneMessageQueue(lastBrokerName);`方法，即上文RocketMQ队列选择所述的逻辑。如果开启了，会避开有问题的broker，寻找可用的broker，当实在没有可用的broker时，会尝试从latencyFaultTolerance中选择一个规避的broker，如果能找到对应的路由，则尝试返回mq，如果没找到说明broker已经不可写，那么从latencyFaultTolerance也移除当前broker。
+

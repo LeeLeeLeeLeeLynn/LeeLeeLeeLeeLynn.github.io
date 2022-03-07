@@ -1,3 +1,16 @@
+```
+layout: post
+title: "网络问题排查工具"
+subtitle: "如何快速排查网络问题"
+date: 2022-01-20
+author: liying
+category: linux
+tags: [linux]
+finished: true
+```
+
+[TOC]
+
 ## tcpdump linux抓包命令
 
 注：需要用管理员权限运行

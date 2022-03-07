@@ -16,7 +16,7 @@ finished: true
 - NameSpace可以让进程只看到与自己相关的资源，对其他nameSpace下的进程及其资源无感
 
 - nameSpace的隔离能力：
-  ![ability](/img/nameSpace.png)
+  ![ability](../img/nameSpace.png)
 
 - 相关函数：
   - `clone()`  创建新进程的时候同时创建namespace 
@@ -86,5 +86,5 @@ linux提供`chroot`命令来改变进程根目录，而docker会有优先使用`
 2. 通过cgroup对资源进行限制。
 3. 切换根目录，根目录中是一个操作系统所包含的文件、配置和目录。（**不包含内核**）
 
-![docker结构视图](/img/docker_core.png)
+![docker结构视图](../img/docker_core.png)
 

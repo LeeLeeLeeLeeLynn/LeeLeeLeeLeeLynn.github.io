@@ -1,3 +1,16 @@
+```
+layout: post
+title: "java进程oom排查工具"
+subtitle: "如何快速排查oom问题"
+date: 2022-01-20
+author: liying
+category: java
+tags: [java]
+finished: true
+```
+
+[TOC]
+
 ## python SimpleHTTPServer :快速共享Linux系统的某个目录　
 
 ​		1）进入待分享的目录
@@ -9,7 +22,7 @@
 python -m SimpleHTTPServer 8080
 ```
 
-![这里写图片描述](/Users/liying/Documents/个人博客/LeeLeeLeeLeeLynn.github.io/img/161026150172671.jpg)
+![这里写图片描述](../img/161026150172671.jpg)
 
 参考：https://www.cnblogs.com/nopnog/p/8116848.html
 
@@ -33,7 +46,7 @@ Started HTTP server on port 7000
 
 堆上的类直方图：
 
-![image-20220120105226477](/Users/liying/Documents/个人博客/LeeLeeLeeLeeLynn.github.io/img/image-20220120105226477.png)
+![image-20220120105226477](../img/image-20220120105226477.png)
 
 
 
@@ -49,11 +62,11 @@ jvisualvm
 
 查看启动参数 -Dcom.sun.management.jmxremote.port=51433 确认JMX采集端口，远程连接
 
-![image-20220120110255490](/Users/liying/Library/Application Support/typora-user-images/image-20220120110255490.png)
+![image-20220120110255490](../img/image-20220120110255490.png)
 
 下载dump文件后，通过jvisualvm查看图形化的堆信息
 
-![image-20220120110007673](/Users/liying/Library/Application Support/typora-user-images/image-20220120110007673.png)
+![image-20220120110007673](../img/image-20220120110007673.png)
 
 
 

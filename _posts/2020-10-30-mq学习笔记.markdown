@@ -20,6 +20,10 @@ finished: false
 
 #### nameserver
 
+​	Broker在启动时，向所有的NameServer注册，Producer在发送消息前，先从NameServer获取Broker服务器列表，然后根据负载算法，从列表中选择一台服务器进行消息发送。NameServer和每台Broker保持长链接，并每隔10s进行心跳检测。
+
+​	NameServer依赖Netty处理网络请求，可以通过修改NettyServerConfig来配置socket缓冲区大小，线程池线程个数等。
+
 #### broker
 
 #### queue
