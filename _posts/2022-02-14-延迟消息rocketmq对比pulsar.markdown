@@ -1,4 +1,4 @@
-```
+---
 layout: post
 title: "RocketMQ和Pulsar的延迟消息机制对比"
 subtitle: "RocketMQ和Pulsar延迟消息支持的类型不同，具体内部实现区别是什么呢？"
@@ -7,7 +7,9 @@ author: liying
 category: mq
 tags: [mq,RocketMQ,Pulsar]
 finished: true
-```
+---
+
+
 
 
 

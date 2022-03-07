@@ -1,4 +1,4 @@
-```
+---
 layout: post
 title: "如何对字符串加synchronized锁"
 subtitle: "希望对一段代码加锁，然而对于允许在传参不同的情况下并发,如何做？"
@@ -7,7 +7,9 @@ author: liying
 category: java
 tags: [java,multi-thread]
 finished: true
-```
+---
+
+
 
 * 目录
 {:toc #markdown-toc}

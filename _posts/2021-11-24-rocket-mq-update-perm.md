@@ -1,4 +1,4 @@
-```
+---
 layout: post
 title: "rocketmq自动创建失败"
 subtitle: "如何快速排查网络问题"
@@ -7,7 +7,9 @@ author: liying
 category: rocketmq
 tags: [linux,rocketmq]
 finished: true
-```
+---
+
+
 
 * 目录
 {:toc #markdown-toc}

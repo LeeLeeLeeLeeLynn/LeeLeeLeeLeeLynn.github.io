@@ -1,4 +1,4 @@
-```
+---
 layout: post
 title: "消息队列 | RocketMq某些队列阻塞不消费"
 subtitle: "RocketMQ部分queue显示有积压，位点保持在一个位置，没有更新。[转载]"
@@ -7,7 +7,9 @@ author: liying
 category: RocketMQ
 tags: [RocketMQ,java]
 finished: true
-```
+---
+
+
 
 * 目录
 {:toc #markdown-toc}

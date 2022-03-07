@@ -1,13 +1,13 @@
-```
+---
 layout: post
-title: "RocketMQ默认的队列选择策略"
-subtitle: "RocketMQ是如何均衡消息发送队列的呢？如果遇到broker异常，是否可以跳过当前broker呢？"
+title: "RocketMQ&Kafka入门概述"
+subtitle: "简单讲述rocketmq和kafka架构和存储上的区别"
 date: 2022-02-21
 author: liying
 category: mq
-tags: [mq,RocketMQ]
+tags: [mq,RocketMQ，Kafka]
 finished: true
-```
+---
 
 
 
@@ -56,7 +56,7 @@ finished: true
 
     * 消费解偶
 
-    ![image-20220221175417185](/Users/liying/Documents/个人博客/LeeLeeLeeLeeLynn.github.io/img/接耦2.png)
+    ![image-20220221175417185](../img/接耦2.png)
 
     ​	避免增加服务接口时，修改代码。
 

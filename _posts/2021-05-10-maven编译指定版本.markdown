@@ -1,4 +1,4 @@
-```
+---
 layout: post
 title: "maven编译指定版本"
 subtitle: "-source 1.5 中不支持 diamond 运算符，如何解决？"
@@ -7,7 +7,9 @@ author: liying
 category: maven
 tags: [maven]
 finished: true
-```
+---
+
+
 
 * 目录
 {:toc #markdown-toc}
