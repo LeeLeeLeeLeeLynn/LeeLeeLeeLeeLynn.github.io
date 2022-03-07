@@ -9,7 +9,9 @@ tags: [linux,rocketmq]
 finished: true
 ```
 
-[TOC]
+* 目录
+{:toc #markdown-toc}
+
 
 ## 问题：RocketMQ自动创建失效
 

@@ -9,7 +9,9 @@ tags: [java,multi-thread]
 finished: true
 ```
 
-[TOC]
+* 目录
+{:toc #markdown-toc}
+
 
 ## 问题
 

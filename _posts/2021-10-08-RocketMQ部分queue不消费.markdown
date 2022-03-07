@@ -9,7 +9,9 @@ tags: [RocketMQ,java]
 finished: true
 ```
 
-[TOC]
+* 目录
+{:toc #markdown-toc}
+
 
 公司小伙伴反馈自己负责的RocketMq集群忽然有两个队列不消费了，消息堆积达到了1万多条，这个肯定不正常。
 
